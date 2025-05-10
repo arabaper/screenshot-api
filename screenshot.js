@@ -2,6 +2,9 @@ import { Hono } from "hono";
 import { logger } from "hono/logger";
 import { cors } from "hono/cors";
 import dotenv from "dotenv";
+import puppeteer from "puppeteer-core";
+import chromium from "@sparticuz/chromium";
+
 dotenv.config();
 
 const app = new Hono();
@@ -10,41 +13,24 @@ const app = new Hono();
 app.use("*", logger());
 app.use("/api/*", cors());
 
-let chrome = {};
-let puppeteer;
-let isLambda = process.env.AWS_LAMBDA_FUNCTION_VERSION
-
-// Dynamic import tergantung lingkungan
-if (isLambda) {
-  chrome = await import("chrome-aws-lambda");
-  puppeteer = await import("puppeteer-core");
-} else {
-  puppeteer = await import("puppeteer");
-}
+const isProduction = process.env.VERCEL_ENV === "production";
 
 // Default route
 app.get("/", (c) => c.text("Hono!"));
 
 // Handler Screenshot
 const handleScreenshot = async ({ url, device, format }) => {
-  let options = {};
+  const executablePath = isProduction
+    ? await chromium.executablePath()
+    : undefined;
 
-  if (isLambda) {
-    options = {
-      args: [...(chrome.args || []), "--hide-scrollbars", "--disable-web-security"],
-      defaultViewport: chrome.defaultViewport,
-      executablePath: await chrome.executablePath,
-      headless: true,
-      ignoreHTTPSErrors: true,
-    };
-  } else {
-    options = {
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    };
-  }
+  const browser = await puppeteer.launch({
+    args: chromium.args,
+    defaultViewport: chromium.defaultViewport,
+    executablePath,
+    headless: chromium.headless,
+  });
 
-  const browser = await puppeteer.launch(options);
   const page = await browser.newPage();
 
   // Set viewport
