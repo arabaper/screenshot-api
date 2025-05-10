@@ -16,16 +16,15 @@ app.use("/api/*", cors());
 const isProduction = process.env.VERCEL_ENV === "production";
 
 // Default route
-app.get("/", (c) => c.text("Hono!"));
+app.get("/", (c) => c.text("Hono aktif!"));
 
-// Handler Screenshot
 const handleScreenshot = async ({ url, device, format }) => {
   const executablePath = isProduction
     ? await chromium.executablePath()
     : undefined;
 
   const browser = await puppeteer.launch({
-    args: chromium.args,
+    args: [...chromium.args, "--no-sandbox", "--disable-setuid-sandbox"],
     defaultViewport: chromium.defaultViewport,
     executablePath,
     headless: chromium.headless,
@@ -33,7 +32,6 @@ const handleScreenshot = async ({ url, device, format }) => {
 
   const page = await browser.newPage();
 
-  // Set viewport
   if (device === "phone") {
     await page.setViewport({
       width: 390,
@@ -53,7 +51,7 @@ const handleScreenshot = async ({ url, device, format }) => {
   }
 
   await page.goto(url, { waitUntil: "networkidle0", timeout: 60000 });
-  await new Promise((res) => setTimeout(res, 30000)); // Delay 30 detik
+  await new Promise((res) => setTimeout(res, 5000)); // Delay 5 detik
 
   const buffer = await page.screenshot({ type: format, fullPage: true });
   await browser.close();
@@ -114,4 +112,5 @@ app.post("/api/screenshot", async (c) => {
   }
 });
 
+// ✅ WAJIB: export handler untuk Vercel
 export default app;
