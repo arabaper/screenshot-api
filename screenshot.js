@@ -12,7 +12,7 @@ app.use("/api/*", cors());
 
 let chrome = {};
 let puppeteer;
-let isLambda = process.env.AWS_LAMBDA_FUNCTION_VERSION === "true";
+let isLambda = process.env.AWS_LAMBDA_FUNCTION_VERSION
 
 // Dynamic import tergantung lingkungan
 if (isLambda) {
